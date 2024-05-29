@@ -1,29 +1,23 @@
 from collections.abc import Callable
-from typing import Any, Union, Generic
-from typing_extensions import TypeAlias, TypeVar
+from typing import Any, Generic
 
 import equinox as eqx
 import jax
-import jax.lax as lax
 import jax.numpy as jnp
-import jax.tree_util as jtu
 import optimistix as optx
 from equinox.internal import ω
-from jaxtyping import Array, ArrayLike, Bool, PyTree, Scalar
+from jaxtyping import Array, Bool, PyTree, Scalar
+
 from .helpers import (
-    tree_full_like,
-    tree_zeros_like,
-    filter_cond,
-    lin_to_grad,
-    cauchy_termination,
-    Y,
     Aux,
-    Args,
+    cauchy_termination,
+    Fn,
     Out,
     SearchState,
-    DescentState,
-    Fn,
+    tree_zeros_like,
+    Y,
 )
+
 
 #
 # NOTE: This solver is hardcoded and does not rely on the Optimistix abstractions

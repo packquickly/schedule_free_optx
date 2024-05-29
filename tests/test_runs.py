@@ -1,9 +1,8 @@
-import pytest
 import jax.numpy as jnp
 import optimistix as optx
-
 from jaxtyping import Array
 from schedule_free_optx import ScheduleFreeAdamW, ScheduleFreeSGD
+
 
 # This is a smokescreen test to make sure the stepsize-free AdamW and SGD
 # algorithms work at all. It is not inteded to actually test their runtimes

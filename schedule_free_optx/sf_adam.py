@@ -1,29 +1,24 @@
 from collections.abc import Callable
-from typing import Any, Union, Generic
-from typing_extensions import TypeAlias, TypeVar
+from typing import Any, Generic
 
 import equinox as eqx
 import jax
-import jax.lax as lax
 import jax.numpy as jnp
 import jax.tree_util as jtu
 import optimistix as optx
 from equinox.internal import ω
-from jaxtyping import Array, ArrayLike, Bool, PyTree, Scalar
+from jaxtyping import Array, Bool, PyTree, Scalar
+
 from .helpers import (
-    tree_full_like,
-    tree_zeros_like,
-    filter_cond,
-    lin_to_grad,
-    cauchy_termination,
-    Y,
     Aux,
-    Args,
+    cauchy_termination,
+    Fn,
     Out,
     SearchState,
-    DescentState,
-    Fn,
+    tree_zeros_like,
+    Y,
 )
+
 
 #
 # NOTE: This solver is hardcoded and does not rely on the Optimistix abstractions
@@ -121,9 +116,7 @@ class ScheduleFreeAdamW(optx.AbstractMinimiser[Y, Aux, _SFState]):
     ) -> tuple[Y, _SFState, Aux]:
         # `f_eval` is evaluated at a point different than the current
         # optimum estimate.
-        new_grad_eval_point = (
-            (1 - self.beta_1) * state.z**ω + self.beta_1 * y**ω
-        ).ω
+        new_grad_eval_point = ((1 - self.beta_1) * state.z**ω + self.beta_1 * y**ω).ω
         (f_eval, aux_eval), grad = jax.value_and_grad(
             lambda _y: fn(_y, args), has_aux=True
         )(new_grad_eval_point)
@@ -135,11 +128,7 @@ class ScheduleFreeAdamW(optx.AbstractMinimiser[Y, Aux, _SFState]):
         step_size = self.learning_rate * jnp.minimum(1, state.step / self.warmup_steps)
         new_z = (
             state.z**ω
-            - (
-                step_size
-                * (grad**ω)
-                / (ω(unbiased_var).call(jnp.sqrt) + self.epsilon)
-            )
+            - (step_size * (grad**ω) / (ω(unbiased_var).call(jnp.sqrt) + self.epsilon))
             - step_size * self.weight_decay * new_grad_eval_point**ω
         ).ω
         new_sum_of_stepsizes = state.sum_of_step_sizes + step_size**2

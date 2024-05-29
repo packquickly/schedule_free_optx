@@ -1,16 +1,15 @@
 from collections.abc import Callable
+from typing import Any, Literal, overload, TypeVar, Union
 from typing_extensions import TypeAlias
-from typing import Any, Literal, Union, overload, TypeVar
 
 import equinox as eqx
-import equinox.internal as eqxi
-from equinox.internal import ω
-import optimistix as optx
 import jax
-import jax.lax as lax
 import jax.numpy as jnp
 import jax.tree_util as jtu
-from jaxtyping import Array, Bool, ArrayLike, PyTree, Scalar
+import optimistix as optx
+from equinox.internal import ω
+from jaxtyping import Array, ArrayLike, Bool, PyTree, Scalar
+
 
 Y = TypeVar("Y")
 Aux = TypeVar("Aux")
@@ -27,14 +26,6 @@ GradFnInfo: TypeAlias = Union[
     optx.FunctionInfo.EvalGradHessianInv,
     optx.FunctionInfo.ResidualJac,
 ]
-
-
-def tree_where(
-    pred: Bool[ArrayLike, ""], true: PyTree[ArrayLike], false: PyTree[ArrayLike]
-) -> PyTree[Array]:
-    """Return the `true` or `false` pytree depending on `pred`."""
-    keep = lambda a, b: jnp.where(pred, a, b)
-    return jtu.tree_map(keep, true, false)
 
 
 def cauchy_termination(
@@ -100,26 +91,3 @@ def tree_full_like(struct: PyTree, fill_value: ArrayLike, allow_static: bool = F
 
 def tree_zeros_like(struct: PyTree):
     return tree_full_like(struct, jnp.asarray(0.0))
-
-
-def lin_to_grad(lin_fn, *primals):
-    return jax.linear_transpose(lin_fn, *primals)(1.0)
-
-
-def filter_cond(pred, true_fun, false_fun, *operands):
-    dynamic, static = eqx.partition(operands, eqx.is_array)
-
-    def _true_fun(_dynamic):
-        _operands = eqx.combine(_dynamic, static)
-        _out = true_fun(*_operands)
-        _dynamic_out, _static_out = eqx.partition(_out, eqx.is_array)
-        return _dynamic_out, eqxi.Static(_static_out)
-
-    def _false_fun(_dynamic):
-        _operands = eqx.combine(_dynamic, static)
-        _out = false_fun(*_operands)
-        _dynamic_out, _static_out = eqx.partition(_out, eqx.is_array)
-        return _dynamic_out, eqxi.Static(_static_out)
-
-    dynamic_out, static_out = lax.cond(pred, _true_fun, _false_fun, dynamic)
-    return eqx.combine(dynamic_out, static_out.value)
